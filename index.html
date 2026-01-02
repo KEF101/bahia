@@ -1,0 +1,3234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Villa Bahia - CAPEX Financial Dashboard</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    
+    <style>
+        /* ==================== DESIGN SYSTEM ==================== */
+        :root {
+            /* Colors - Clean Professional Palette */
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f5f5f5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a4a4a;
+            --text-muted: #6b6b6b;
+            --text-light: #8a8a8a;
+            
+            /* Accent Colors - Restrained */
+            --accent-primary: #1e3a5f;
+            --accent-primary-light: #2d5a8a;
+            --accent-secondary: #3d7ea6;
+            
+            /* Semantic Colors - Muted */
+            --success: #2e7d32;
+            --success-bg: #e8f5e9;
+            --warning: #c77700;
+            --warning-bg: #fff8e1;
+            --danger: #c62828;
+            --danger-bg: #ffebee;
+            --info: #1565c0;
+            --info-bg: #e3f2fd;
+            
+            /* Borders & Shadows */
+            --border-color: #e0e0e0;
+            --border-light: #eeeeee;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+            
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            
+            /* Typography */
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+            
+            /* Layout */
+            --sidebar-width: 240px;
+            --header-height: 56px;
+            --border-radius: 6px;
+            --border-radius-lg: 8px;
+        }
+
+        /* Reset & Base */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+
+        h1 { font-size: 1.75rem; }
+        h2 { font-size: 1.375rem; }
+        h3 { font-size: 1.125rem; }
+        h4 { font-size: 1rem; }
+
+        /* ==================== LAYOUT ==================== */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .sidebar-logo {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: var(--space-md) 0;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .nav-section-title {
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+            padding: 0 var(--space-lg);
+            margin-bottom: var(--space-sm);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: var(--space-sm) var(--space-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--info-bg);
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        .nav-item svg {
+            width: 18px;
+            height: 18px;
+            margin-right: var(--space-sm);
+            opacity: 0.7;
+        }
+
+        .sidebar-footer {
+            padding: var(--space-md) var(--space-lg);
+            border-top: 1px solid var(--border-light);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            height: var(--header-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-lg);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        /* Page Content */
+        .page-content {
+            flex: 1;
+            padding: var(--space-lg);
+            max-width: 1600px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* ==================== COMPONENTS ==================== */
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xs);
+            padding: var(--space-sm) var(--space-md);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: var(--border-radius);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-primary-light);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--text-light);
+        }
+
+        .btn-sm {
+            padding: var(--space-xs) var(--space-sm);
+            font-size: 0.75rem;
+        }
+
+        .btn-icon {
+            padding: var(--space-sm);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            padding: var(--space-md) var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: var(--space-lg);
+        }
+
+        .card-footer {
+            padding: var(--space-md) var(--space-lg);
+            border-top: 1px solid var(--border-light);
+            background: var(--bg-tertiary);
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .kpi-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius-lg);
+            padding: var(--space-lg);
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: var(--space-xs);
+        }
+
+        .kpi-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-feature-settings: 'tnum';
+        }
+
+        .kpi-trend {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            margin-top: var(--space-xs);
+            font-size: 0.75rem;
+        }
+
+        .kpi-trend.positive { color: var(--success); }
+        .kpi-trend.negative { color: var(--danger); }
+        .kpi-trend.neutral { color: var(--text-muted); }
+
+        /* Charts */
+        .chart-container {
+            width: 100%;
+            min-height: 300px;
+        }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .chart-row-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @media (max-width: 1200px) {
+            .chart-row { grid-template-columns: 1fr; }
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+        }
+
+        th, td {
+            padding: var(--space-sm) var(--space-md);
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        td.numeric {
+            font-feature-settings: 'tnum';
+            text-align: right;
+            font-family: var(--font-mono);
+        }
+
+        /* Status Pills */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.6875rem;
+            font-weight: 500;
+        }
+
+        .status-categorized { background: var(--success-bg); color: var(--success); }
+        .status-needs-review { background: var(--warning-bg); color: var(--warning); }
+        .status-excluded { background: var(--bg-tertiary); color: var(--text-muted); }
+        .status-internal { background: var(--info-bg); color: var(--info); }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: var(--space-md);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md);
+            font-size: 0.875rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background: var(--bg-secondary);
+            transition: border-color 0.15s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-md);
+            padding: var(--space-md) var(--space-lg);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--border-radius-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .filter-label {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .filter-select {
+            padding: var(--space-xs) var(--space-sm);
+            font-size: 0.8125rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background: white;
+            min-width: 140px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(20px);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: var(--space-xs);
+            color: var(--text-muted);
+        }
+
+        .modal-body {
+            padding: var(--space-lg);
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: var(--space-md) var(--space-lg);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-sm);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: var(--space-lg);
+            right: var(--space-lg);
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .toast {
+            background: var(--text-primary);
+            color: white;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            font-size: 0.875rem;
+            animation: slideIn 0.2s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .sync-dot.offline { background: var(--danger); }
+        .sync-dot.syncing { background: var(--warning); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Editable Cell */
+        .editable {
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background 0.15s ease;
+        }
+
+        .editable:hover {
+            background: var(--info-bg);
+        }
+
+        .editable-input {
+            width: 100%;
+            padding: 2px 4px;
+            border: 1px solid var(--accent-primary);
+            border-radius: 3px;
+            font-size: inherit;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: var(--space-xs);
+            margin-bottom: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .tab-btn {
+            padding: var(--space-sm) var(--space-md);
+            background: none;
+            border: none;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.15s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-lg);
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+        }
+
+        @media (max-width: 900px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+
+        /* Utilities */
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-muted { color: var(--text-muted); }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .text-warning { color: var(--warning); }
+        .font-mono { font-family: var(--font-mono); }
+        .mb-0 { margin-bottom: 0; }
+        .mb-md { margin-bottom: var(--space-md); }
+        .mb-lg { margin-bottom: var(--space-lg); }
+
+        /* Connection Status Banner */
+        .connection-banner {
+            padding: var(--space-sm) var(--space-lg);
+            background: var(--warning-bg);
+            color: var(--warning);
+            font-size: 0.8125rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+        }
+
+        .connection-banner.offline {
+            display: flex;
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        /* Help Modal */
+        .help-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .help-section h4 {
+            margin-bottom: var(--space-sm);
+            color: var(--accent-primary);
+        }
+
+        .help-section p {
+            margin-bottom: var(--space-sm);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .kpi-definition {
+            background: var(--bg-tertiary);
+            padding: var(--space-md);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--space-sm);
+        }
+
+        .kpi-definition strong {
+            color: var(--text-primary);
+        }
+
+        /* Sparkline */
+        .sparkline-container {
+            height: 40px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- ==================== FIREBASE CONFIGURATION ==================== -->
+    <script>
+        // =====================================================
+        // FIREBASE CONFIG - PASTE YOUR CREDENTIALS HERE
+        // =====================================================
+        const FIREBASE_CONFIG = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Demo mode if Firebase not configured
+        const DEMO_MODE = FIREBASE_CONFIG.apiKey === "YOUR_API_KEY";
+    </script>
+
+    <!-- ==================== APP STRUCTURE ==================== -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Villa Bahia</div>
+                <div class="sidebar-subtitle">CAPEX Dashboard</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Analytics</div>
+                    <div class="nav-item active" data-page="overview">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Executive Overview
+                    </div>
+                    <div class="nav-item" data-page="budget">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Budget & Cost Control
+                    </div>
+                    <div class="nav-item" data-page="suppliers">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Supplier Analytics
+                    </div>
+                    <div class="nav-item" data-page="funding">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        Funding & Flows
+                    </div>
+                    <div class="nav-item" data-page="hierarchy">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        Hierarchy Explorer
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Data Management</div>
+                    <div class="nav-item" data-page="transactions">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        Transactions Ledger
+                    </div>
+                    <div class="nav-item" data-page="rules">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        Rules Manager
+                    </div>
+                    <div class="nav-item" data-page="settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        Settings
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="sync-status">
+                    <span class="sync-dot" id="syncDot"></span>
+                    <span id="syncText">Connected</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Connection Banner -->
+            <div class="connection-banner" id="connectionBanner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Running in demo mode - configure Firebase to connect to your data</span>
+            </div>
+
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 class="header-title" id="pageTitle">Executive Overview</h1>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-secondary btn-sm" onclick="openHelpModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Help
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshData()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <!-- Filter Bar -->
+                <div class="filter-bar" id="filterBar">
+                    <div class="filter-group">
+                        <span class="filter-label">Date Range</span>
+                        <select class="filter-select" id="filterDateRange">
+                            <option value="all">All Time</option>
+                            <option value="ytd">Year to Date</option>
+                            <option value="last12m">Last 12 Months</option>
+                            <option value="last6m">Last 6 Months</option>
+                            <option value="last3m">Last 3 Months</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Category Level 2</span>
+                        <select class="filter-select" id="filterCategory2">
+                            <option value="all">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Category Level 3</span>
+                        <select class="filter-select" id="filterCategory3">
+                            <option value="all">All Sub-Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Supplier</span>
+                        <select class="filter-select" id="filterSupplier">
+                            <option value="all">All Suppliers</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Funding Type</span>
+                        <select class="filter-select" id="filterFunding">
+                            <option value="all">All Types</option>
+                            <option value="equity">Equity</option>
+                            <option value="cca">CCA</option>
+                            <option value="loan">Loan</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Status</span>
+                        <select class="filter-select" id="filterStatus">
+                            <option value="all">All Status</option>
+                            <option value="categorized">Categorized</option>
+                            <option value="needs_review">Needs Review</option>
+                            <option value="excluded">Excluded</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Page: Executive Overview -->
+                <div class="page active" id="page-overview">
+                    <div class="kpi-grid" id="kpiGrid">
+                        <!-- KPIs will be rendered here -->
+                    </div>
+                    
+                    <div class="chart-row">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Spend by Category</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartTreemap"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Budget vs Actual</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartBullet"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-row">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Monthly Spend Trend</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartTrend"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Funding Stack</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartFundingStack"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Budget & Cost Control -->
+                <div class="page" id="page-budget">
+                    <div class="chart-row">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Monthly Spend by Category</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartStackedBar"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Spend Heatmap</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartHeatmap"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Budget Variance Analysis</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="exportBudgetTable()">Export</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table id="budgetTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Sub-Category</th>
+                                            <th class="text-right">Budget (Dhs)</th>
+                                            <th class="text-right">Actual (Dhs)</th>
+                                            <th class="text-right">Variance</th>
+                                            <th class="text-right">% Used</th>
+                                            <th>Status</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="budgetTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Supplier Analytics -->
+                <div class="page" id="page-suppliers">
+                    <div class="chart-row">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Top Suppliers by Spend</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartSupplierBar"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Supplier Analysis</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartSupplierBubble"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-row">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Transaction Size Distribution</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartHistogram"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Supplier Concentration</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartConcentration"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Exceptions & Review</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table id="exceptionsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Supplier</th>
+                                            <th class="text-right">Amount (Dhs)</th>
+                                            <th>Issue</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exceptionsTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Funding & Flows -->
+                <div class="page" id="page-funding">
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Total Funding</div>
+                            <div class="kpi-value" id="kpiFunding">0 Dhs</div>
+                            <div class="kpi-trend neutral">All sources</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Equity</div>
+                            <div class="kpi-value" id="kpiEquity">0 Dhs</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">CCA Advances</div>
+                            <div class="kpi-value" id="kpiCCA">0 Dhs</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Loans</div>
+                            <div class="kpi-value" id="kpiLoans">0 Dhs</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-row">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Funding Flow (Sankey)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartSankey" style="min-height: 400px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-row">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Cumulative Funding vs Spend</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartFundingVsSpend"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Funding Gap Analysis</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartFundingGap"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Hierarchy Explorer -->
+                <div class="page" id="page-hierarchy">
+                    <div class="chart-row">
+                        <div class="card" style="grid-column: span 2;">
+                            <div class="card-header">
+                                <h3 class="card-title">Category Hierarchy (Sunburst)</h3>
+                                <span class="text-muted" style="font-size: 0.75rem;">Click to drill down</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" id="chartSunburst" style="min-height: 500px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" id="drilldownTitle">Transaction Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table id="drilldownTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Supplier</th>
+                                            <th>Description</th>
+                                            <th class="text-right">Amount (Dhs)</th>
+                                            <th>Category</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="drilldownTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Transactions Ledger -->
+                <div class="page" id="page-transactions">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">All Transactions</h3>
+                            <div style="display: flex; gap: var(--space-sm);">
+                                <button class="btn btn-secondary btn-sm" onclick="bulkAction('review')">Mark Review</button>
+                                <button class="btn btn-secondary btn-sm" onclick="bulkAction('transfer')">Mark Transfer</button>
+                                <button class="btn btn-primary btn-sm" onclick="exportTransactions()">Export</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-md">
+                                <input type="text" class="form-input" id="transactionSearch" placeholder="Search transactions..." style="max-width: 300px;">
+                            </div>
+                            <div class="table-container" style="max-height: 600px; overflow-y: auto;">
+                                <table id="transactionsTable">
+                                    <thead>
+                                        <tr>
+                                            <th><input type="checkbox" id="selectAll"></th>
+                                            <th>Date</th>
+                                            <th class="text-right">Amount</th>
+                                            <th>Direction</th>
+                                            <th>Counterparty</th>
+                                            <th>Description</th>
+                                            <th>Supplier</th>
+                                            <th>Category 2</th>
+                                            <th>Category 3</th>
+                                            <th>Funding</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transactionsTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span id="transactionCount">0 transactions</span>
+                                <div>
+                                    <button class="btn btn-sm btn-secondary" id="prevPage" disabled>Previous</button>
+                                    <button class="btn btn-sm btn-secondary" id="nextPage">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Rules Manager -->
+                <div class="page" id="page-rules">
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Categorization Rules</h3>
+                                <button class="btn btn-primary btn-sm" onclick="openRuleModal()">Add Rule</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table id="rulesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Priority</th>
+                                                <th>Type</th>
+                                                <th>Pattern</th>
+                                                <th>Assigns</th>
+                                                <th>Active</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rulesTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Supplier Directory</h3>
+                                <button class="btn btn-primary btn-sm" onclick="openSupplierModal()">Add Supplier</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table id="supplierTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Supplier Name</th>
+                                                <th>Default Category</th>
+                                                <th>Total Spend</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="supplierTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Settings -->
+                <div class="page" id="page-settings">
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Firebase Connection</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label">Project ID</label>
+                                    <input type="text" class="form-input" id="settingProjectId" placeholder="your-project-id">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">API Key</label>
+                                    <input type="password" class="form-input" id="settingApiKey" placeholder="Your API Key">
+                                </div>
+                                <button class="btn btn-primary" onclick="saveFirebaseConfig()">Save & Connect</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Data Management</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label">Starting Balance</label>
+                                    <input type="number" class="form-input" id="settingStartBalance" placeholder="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Currency</label>
+                                    <select class="form-select" id="settingCurrency">
+                                        <option value="MAD">MAD (Dhs)</option>
+                                        <option value="EUR">EUR (€)</option>
+                                        <option value="USD">USD ($)</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-secondary" onclick="clearLocalCache()">Clear Local Cache</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Help -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Help & Documentation</h3>
+                <button class="modal-close" onclick="closeModal('helpModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h4>Data Dictionary</h4>
+                    <div class="kpi-definition">
+                        <strong>bank_transactions:</strong> Core transaction records from bank feeds. Fields: transactionDate, amount, direction, counterparty, description, reference.
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>categories:</strong> Hierarchical expense categories. Level 2 (e.g., INVEST_CONSTRUCTION) and Level 3 (e.g., GROS OEUVRES).
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>suppliers:</strong> Vendor/counterparty directory with default category assignments.
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>budgets:</strong> Planned amounts by category and/or supplier.
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h4>KPI Definitions</h4>
+                    <div class="kpi-definition">
+                        <strong>Total CAPEX:</strong> Sum of all outflows excluding internal transfers and bank fees, filtered to INVEST_* categories.
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>Budget Remaining:</strong> Total budgeted amount minus actual spend to date.
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>Burn Rate:</strong> Average monthly spend over the selected rolling period (30/60/90 days).
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>Runway:</strong> Current cash position divided by monthly burn rate.
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>Funding Coverage:</strong> Total funding received divided by total spend to date.
+                    </div>
+                    <div class="kpi-definition">
+                        <strong>Supplier Concentration:</strong> Share of total spend held by top 5 suppliers.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h4>Auto-Categorization Rules</h4>
+                    <p>The system automatically categorizes transactions using this priority order:</p>
+                    <ol style="margin-left: 20px; color: var(--text-secondary);">
+                        <li>Manual override (highest priority)</li>
+                        <li>Exact match rules on counterparty</li>
+                        <li>Contains match rules</li>
+                        <li>Regex pattern rules</li>
+                        <li>Supplier default category</li>
+                        <li>Mark as "needs review" if unmatched</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('helpModal')">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Rule -->
+    <div class="modal-overlay" id="ruleModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Categorization Rule</h3>
+                <button class="modal-close" onclick="closeModal('ruleModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Match Type</label>
+                    <select class="form-select" id="ruleType">
+                        <option value="exact">Exact Match</option>
+                        <option value="contains">Contains</option>
+                        <option value="regex">Regex</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Match Field</label>
+                    <select class="form-select" id="ruleField">
+                        <option value="counterparty">Counterparty</option>
+                        <option value="description">Description</option>
+                        <option value="reference">Reference</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pattern</label>
+                    <input type="text" class="form-input" id="rulePattern" placeholder="Enter pattern to match">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assign Category 2</label>
+                    <select class="form-select" id="ruleCategory2">
+                        <option value="">Select category...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assign Category 3</label>
+                    <select class="form-select" id="ruleCategory3">
+                        <option value="">Select sub-category...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priority (lower = higher priority)</label>
+                    <input type="number" class="form-input" id="rulePriority" value="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('ruleModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveRule()">Save Rule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Transaction -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Transaction</h3>
+                <button class="modal-close" onclick="closeModal('transactionModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Supplier</label>
+                    <select class="form-select" id="txSupplier">
+                        <option value="">Select supplier...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category 2</label>
+                    <select class="form-select" id="txCategory2">
+                        <option value="">Select category...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category 3</label>
+                    <select class="form-select" id="txCategory3">
+                        <option value="">Select sub-category...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Funding Type</label>
+                    <select class="form-select" id="txFunding">
+                        <option value="">Not specified</option>
+                        <option value="equity">Equity</option>
+                        <option value="cca">CCA</option>
+                        <option value="loan">Loan</option>
+                        <option value="bank_fee">Bank Fee</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="txStatus">
+                        <option value="categorized">Categorized</option>
+                        <option value="needs_review">Needs Review</option>
+                        <option value="excluded">Excluded</option>
+                        <option value="internal_transfer">Internal Transfer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-input" id="txNotes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('transactionModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTransaction()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ==================== APPLICATION LOGIC ==================== -->
+    <script>
+        // =====================================================
+        // GLOBAL STATE
+        // =====================================================
+        const AppState = {
+            transactions: [],
+            categories: [],
+            suppliers: [],
+            budgets: [],
+            rules: [],
+            classifications: {},
+            filters: {
+                dateRange: 'all',
+                category2: 'all',
+                category3: 'all',
+                supplier: 'all',
+                funding: 'all',
+                status: 'all'
+            },
+            pagination: {
+                page: 0,
+                pageSize: 50
+            },
+            selectedTransactions: new Set(),
+            editingTransaction: null,
+            charts: {},
+            isConnected: false
+        };
+
+        // =====================================================
+        // DEMO DATA (used when Firebase not configured)
+        // Data based on actual Villa Bahia project figures
+        // =====================================================
+        const DEMO_DATA = {
+            transactions: generateDemoTransactions(),
+            categories: [
+                // INVEST_FONCIER
+                { id: 'cat1', category2Id: '1', category2Name: 'INVEST_FONCIER', category3Id: '1.1', category3Name: 'FONCIER', sortOrder: 1 },
+                // INVEST_FRAIS PRELIMINAIRES
+                { id: 'cat2', category2Id: '2', category2Name: 'INVEST_FRAIS PRELIMINAIRES', category3Id: '2.1', category3Name: 'AUTORISATION', sortOrder: 2 },
+                { id: 'cat3', category2Id: '2', category2Name: 'INVEST_FRAIS PRELIMINAIRES', category3Id: '2.2', category3Name: 'ETUDES', sortOrder: 3 },
+                { id: 'cat4', category2Id: '2', category2Name: 'INVEST_FRAIS PRELIMINAIRES', category3Id: '2.3', category3Name: 'OPC', sortOrder: 4 },
+                // INVEST_CONSTRUCTION
+                { id: 'cat5', category2Id: '3', category2Name: 'INVEST_CONSTRUCTION', category3Id: '3.0', category3Name: 'SUNK-COSTS', sortOrder: 5 },
+                { id: 'cat6', category2Id: '3', category2Name: 'INVEST_CONSTRUCTION', category3Id: '3.1', category3Name: 'GROS OEUVRES', sortOrder: 6 },
+                { id: 'cat7', category2Id: '3', category2Name: 'INVEST_CONSTRUCTION', category3Id: '3.2', category3Name: 'METALLURGIE', sortOrder: 7 },
+                // INVEST_AMENAGEMENTS & AGENCEMENTS
+                { id: 'cat8', category2Id: '4', category2Name: 'INVEST_AMENAGEMENTS & AGENCEMENTS', category3Id: '4.1', category3Name: 'LOTS TECHNIQUES', sortOrder: 8 },
+                { id: 'cat9', category2Id: '4', category2Name: 'INVEST_AMENAGEMENTS & AGENCEMENTS', category3Id: '4.2', category3Name: 'SECONDS OEUVRES', sortOrder: 9 },
+                { id: 'cat10', category2Id: '4', category2Name: 'INVEST_AMENAGEMENTS & AGENCEMENTS', category3Id: '4.3', category3Name: 'FINITIONS', sortOrder: 10 },
+                { id: 'cat11', category2Id: '4', category2Name: 'INVEST_AMENAGEMENTS & AGENCEMENTS', category3Id: '4.5', category3Name: 'EQUIPEMENTS', sortOrder: 11 },
+                { id: 'cat12', category2Id: '4', category2Name: 'INVEST_AMENAGEMENTS & AGENCEMENTS', category3Id: '4.6', category3Name: 'EXTERIEUR', sortOrder: 12 },
+                // INVEST_EQUIPEMENTS ANIMATION
+                { id: 'cat13', category2Id: '5', category2Name: 'INVEST_EQUIPEMENTS ANIMATION', category3Id: '5.1', category3Name: 'IMPORT_JETSKI', sortOrder: 13 },
+                { id: 'cat14', category2Id: '5', category2Name: 'INVEST_EQUIPEMENTS ANIMATION', category3Id: '5.4', category3Name: 'SON & LUMIERES', sortOrder: 14 },
+                // FINANCEMENT
+                { id: 'cat15', category2Id: '9', category2Name: 'FINANCEMENT', category3Id: '9.1', category3Name: 'FINANCEMENT CCA', sortOrder: 15 },
+                { id: 'cat16', category2Id: '9', category2Name: 'FINANCEMENT', category3Id: '9.2', category3Name: 'FINANCEMENT Sté', sortOrder: 16 }
+            ],
+            suppliers: [
+                // FONCIER
+                { id: 'sup1', supplierName: 'Etude Chenguiti', defaultCategory2Id: '1', defaultCategory3Id: '1.1' },
+                // AUTORISATION
+                { id: 'sup2', supplierName: 'Commune de Mansouria', defaultCategory2Id: '2', defaultCategory3Id: '2.1' },
+                { id: 'sup3', supplierName: 'Protection Civile', defaultCategory2Id: '2', defaultCategory3Id: '2.1' },
+                { id: 'sup4', supplierName: 'TGR', defaultCategory2Id: '2', defaultCategory3Id: '2.1' },
+                // ETUDES
+                { id: 'sup5', supplierName: 'Architecte_ELYakini Charaf', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup6', supplierName: 'BC_Axe Survey', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup7', supplierName: 'BET Sécurité', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup8', supplierName: 'BET_Gold Etude', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup9', supplierName: 'Fiducière Bekkal', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup10', supplierName: 'K & ER Conseil', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup11', supplierName: 'Laboratoire_LEG', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup12', supplierName: 'Laboratoire_LSR', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                { id: 'sup13', supplierName: 'Topographe', defaultCategory2Id: '2', defaultCategory3Id: '2.2' },
+                // OPC
+                { id: 'sup14', supplierName: 'MESS', defaultCategory2Id: '2', defaultCategory3Id: '2.3' },
+                // CONSTRUCTION - Main contractor
+                { id: 'sup15', supplierName: 'MESS+ELEC+PRO+SARL', defaultCategory2Id: '3', defaultCategory3Id: '3.1' },
+                // FINANCEMENT
+                { id: 'sup16', supplierName: 'KEF INVEST', defaultCategory2Id: '9', defaultCategory3Id: '9.2', fundingType: 'loan' },
+                { id: 'sup17', supplierName: 'KEF ADVISORY', defaultCategory2Id: '9', defaultCategory3Id: '9.2', fundingType: 'loan' },
+                { id: 'sup18', supplierName: 'PERSEUS', defaultCategory2Id: '9', defaultCategory3Id: '9.2', fundingType: 'loan' },
+                { id: 'sup19', supplierName: 'KEF (Avance CCA)', defaultCategory2Id: '9', defaultCategory3Id: '9.1', fundingType: 'cca' }
+            ],
+            budgets: [
+                // INVEST_FONCIER
+                { id: 'bud1', category2Id: '1', category3Id: '1.1', budgetAmount: 3857774 },
+                // INVEST_FRAIS PRELIMINAIRES
+                { id: 'bud2', category2Id: '2', category3Id: '2.1', budgetAmount: 50850 },
+                { id: 'bud3', category2Id: '2', category3Id: '2.2', budgetAmount: 268500 },
+                { id: 'bud4', category2Id: '2', category3Id: '2.3', budgetAmount: 26318 },
+                // INVEST_CONSTRUCTION
+                { id: 'bud5', category2Id: '3', category3Id: '3.0', budgetAmount: 42000 },
+                { id: 'bud6', category2Id: '3', category3Id: '3.1', budgetAmount: 1526118 },
+                { id: 'bud7', category2Id: '3', category3Id: '3.2', budgetAmount: 26280 },
+                // INVEST_AMENAGEMENTS & AGENCEMENTS
+                { id: 'bud8', category2Id: '4', category3Id: '4.1', budgetAmount: 825919 },
+                { id: 'bud9', category2Id: '4', category3Id: '4.2', budgetAmount: 742980 },
+                { id: 'bud10', category2Id: '4', category3Id: '4.3', budgetAmount: 475751 },
+                { id: 'bud11', category2Id: '4', category3Id: '4.5', budgetAmount: 595000 },
+                { id: 'bud12', category2Id: '4', category3Id: '4.6', budgetAmount: 380000 },
+                // INVEST_EQUIPEMENTS ANIMATION
+                { id: 'bud13', category2Id: '5', category3Id: '5.1', budgetAmount: 237964 },
+                { id: 'bud14', category2Id: '5', category3Id: '5.4', budgetAmount: 3328 },
+                // FINANCEMENT (expected inflows)
+                { id: 'bud15', category2Id: '9', category3Id: '9.1', budgetAmount: 1417760, notes: 'KEF Avance CCA' },
+                { id: 'bud16', category2Id: '9', category3Id: '9.2', budgetAmount: 7947052, notes: 'Loans (KEF INVEST, KEF ADVISORY, PERSEUS)' }
+            ],
+            rules: [
+                { id: 'rule1', type: 'contains', matchField: 'counterparty', pattern: 'KEF INVEST', category2Id: '9', category3Id: '9.2', fundingType: 'loan', priority: 1, isActive: true },
+                { id: 'rule2', type: 'contains', matchField: 'counterparty', pattern: 'KEF ADVISORY', category2Id: '9', category3Id: '9.2', fundingType: 'loan', priority: 2, isActive: true },
+                { id: 'rule3', type: 'contains', matchField: 'counterparty', pattern: 'PERSEUS', category2Id: '9', category3Id: '9.2', fundingType: 'loan', priority: 3, isActive: true },
+                { id: 'rule4', type: 'contains', matchField: 'counterparty', pattern: 'CCA', category2Id: '9', category3Id: '9.1', fundingType: 'cca', priority: 4, isActive: true },
+                { id: 'rule5', type: 'contains', matchField: 'counterparty', pattern: 'MESS+ELEC', category2Id: '3', category3Id: '3.1', priority: 5, isActive: true }
+            ]
+        };
+
+        function generateDemoTransactions() {
+            const transactions = [];
+            
+            // Actual project transaction data based on uploaded images
+            // Grand Total: 10,305,846.22 Dhs Outflow, 9,372,467 Dhs Inflow
+            const counterparties = [
+                // INVEST_FONCIER (1) - Total: 3,857,774 Dhs
+                { name: 'Etude Chenguiti', cat2: '1', cat3: '1.1', amounts: [3857774], dates: ['2022-06-15'] },
+                
+                // INVEST_FRAIS PRELIMINAIRES (2) - Total: 417,320.36 Dhs
+                // 2.1 AUTORISATION - 50,850.36 Dhs
+                { name: 'Commune de Mansouria', cat2: '2', cat3: '2.1', amounts: [25417.76, 12000, 8041], dates: ['2022-07-10', '2022-08-15', '2023-02-20'] },
+                { name: 'Protection Civile', cat2: '2', cat3: '2.1', amounts: [4391.60], dates: ['2022-09-05'] },
+                { name: 'TGR', cat2: '2', cat3: '2.1', amounts: [1000], dates: ['2022-10-15'] },
+                
+                // 2.2 ETUDES - 340,152 Dhs
+                { name: 'Architecte_ELYakini Charaf', cat2: '2', cat3: '2.2', amounts: [35000, 25000, 16000], dates: ['2022-08-01', '2023-01-15', '2023-06-20'] },
+                { name: 'BC_Axe Survey', cat2: '2', cat3: '2.2', amounts: [19000], dates: ['2022-09-10'] },
+                { name: 'BET Sécurité', cat2: '2', cat3: '2.2', amounts: [2400], dates: ['2022-10-05'] },
+                { name: 'BET_Gold Etude', cat2: '2', cat3: '2.2', amounts: [60000], dates: ['2022-11-15'] },
+                { name: 'Fiducière Bekkal', cat2: '2', cat3: '2.2', amounts: [15000], dates: ['2023-02-10'] },
+                { name: 'K & ER Conseil', cat2: '2', cat3: '2.2', amounts: [72000, 50000, 22000], dates: ['2022-12-01', '2023-05-15', '2023-09-20'] },
+                { name: 'Laboratoire_LEG', cat2: '2', cat3: '2.2', amounts: [14500], dates: ['2023-03-05'] },
+                { name: 'Laboratoire_LSR', cat2: '2', cat3: '2.2', amounts: [7252], dates: ['2023-04-10'] },
+                { name: 'Topographe', cat2: '2', cat3: '2.2', amounts: [2000], dates: ['2022-07-20'] },
+                
+                // 2.3 OPC - 26,318 Dhs
+                { name: 'MESS', cat2: '2', cat3: '2.3', amounts: [15000, 11318], dates: ['2023-01-10', '2023-08-15'] },
+                
+                // INVEST_CONSTRUCTION (3) - Total: 1,797,089 Dhs
+                // 3.0 SUNK-COSTS - 42,000 Dhs
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '3', cat3: '3.0', amounts: [42000], dates: ['2023-02-01'] },
+                // 3.1 GROS OEUVRES - 1,728,809 Dhs (Multiple payments to main contractor)
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '3', cat3: '3.1', amounts: [250000, 300000, 350000, 280000, 200000, 180000, 168809], dates: ['2023-03-15', '2023-05-01', '2023-07-15', '2023-09-01', '2023-11-15', '2024-02-01', '2024-04-15'] },
+                // 3.2 METALLURGIE - 26,280 Dhs
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '3', cat3: '3.2', amounts: [26280], dates: ['2024-01-20'] },
+                
+                // INVEST_AMENAGEMENTS & AGENCEMENTS (4) - Total: 2,416,690.52 Dhs
+                // 4.1 LOTS TECHNIQUES - 719,417.08 Dhs
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '4', cat3: '4.1', amounts: [200000, 180000, 150000, 120000, 69417.08], dates: ['2024-03-01', '2024-05-15', '2024-07-01', '2024-09-15', '2024-11-01'] },
+                // 4.2 SECONDS OEUVRES - 582,916.04 Dhs
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '4', cat3: '4.2', amounts: [150000, 180000, 130000, 122916.04], dates: ['2024-04-01', '2024-06-15', '2024-08-01', '2024-10-15'] },
+                // 4.3 FINITIONS - 827,671.40 Dhs
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '4', cat3: '4.3', amounts: [200000, 250000, 220000, 157671.40], dates: ['2024-05-01', '2024-07-15', '2024-09-01', '2024-11-15'] },
+                // 4.5 EQUIPEMENTS - 134,686 Dhs
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '4', cat3: '4.5', amounts: [80000, 54686], dates: ['2024-08-01', '2024-10-01'] },
+                // 4.6 EXTERIEUR - 152,000 Dhs
+                { name: 'MESS+ELEC+PRO+SARL', cat2: '4', cat3: '4.6', amounts: [100000, 52000], dates: ['2024-09-15', '2024-11-20'] },
+                
+                // INVEST_EQUIPEMENTS ANIMATION (5) - Total: 241,291.75 Dhs
+                // 5.1 IMPORT_JETSKI - 237,963.75 Dhs
+                { name: 'Import Jetski Supplier', cat2: '5', cat3: '5.1', amounts: [237963.75], dates: ['2024-06-01'] },
+                // 5.4 SON & LUMIERES - 3,328 Dhs
+                { name: 'Son & Lumieres Supplier', cat2: '5', cat3: '5.4', amounts: [3328], dates: ['2024-07-10'] },
+                
+                // FINANCEMENT (9) - INFLOWS
+                // 9.1 FINANCEMENT CCA - KEF Avance CCA: 1,791,260 Dhs inflow
+                { name: 'KEF (Avance CCA)', cat2: '9', cat3: '9.1', amounts: [500000, 450000, 400000, 300000, 141260], dates: ['2022-06-01', '2023-01-15', '2023-06-01', '2024-01-15', '2024-06-01'], dir: 'inflow', fundingType: 'cca' },
+                // 9.2 FINANCEMENT Sté - Loans
+                // KEF INVEST: 5,606,691 Dhs inflow
+                { name: 'KEF INVEST', cat2: '9', cat3: '9.2', amounts: [1000000, 1200000, 1000000, 800000, 700000, 500000, 406691], dates: ['2022-08-01', '2023-02-01', '2023-07-01', '2023-12-01', '2024-04-01', '2024-08-01', '2024-11-01'], dir: 'inflow', fundingType: 'loan' },
+                // KEF ADVISORY: 1,442,500 Dhs inflow
+                { name: 'KEF ADVISORY', cat2: '9', cat3: '9.2', amounts: [500000, 400000, 300000, 242500], dates: ['2023-03-01', '2023-09-01', '2024-03-01', '2024-09-01'], dir: 'inflow', fundingType: 'loan' },
+                // PERSEUS: 450,000 Dhs inflow
+                { name: 'PERSEUS', cat2: '9', cat3: '9.2', amounts: [250000, 200000], dates: ['2024-05-01', '2024-10-01'], dir: 'inflow', fundingType: 'loan' },
+                
+                // FINANCEMENT - OUTFLOWS (loan repayments/fees)
+                // KEF Avance CCA outflow: 373,500 Dhs
+                { name: 'KEF (Avance CCA)', cat2: '9', cat3: '9.1', amounts: [150000, 123500, 100000], dates: ['2023-06-15', '2024-01-15', '2024-08-15'], dir: 'outflow', fundingType: 'cca' },
+                // KEF INVEST outflow: 470,000 Dhs
+                { name: 'KEF INVEST', cat2: '9', cat3: '9.2', amounts: [200000, 150000, 120000], dates: ['2023-12-15', '2024-06-15', '2024-10-15'], dir: 'outflow', fundingType: 'loan' },
+                // KEF ADVISORY outflow: 50,000 Dhs
+                { name: 'KEF ADVISORY', cat2: '9', cat3: '9.2', amounts: [50000], dates: ['2024-09-15'], dir: 'outflow', fundingType: 'loan' }
+            ];
+            
+            let id = 1;
+            
+            counterparties.forEach(cp => {
+                cp.amounts.forEach((amount, idx) => {
+                    const dateStr = cp.dates && cp.dates[idx] ? cp.dates[idx] : '2023-06-01';
+                    const date = new Date(dateStr);
+                    
+                    transactions.push({
+                        id: `tx${id++}`,
+                        transactionDate: date.toISOString(),
+                        amount: Math.abs(amount),
+                        direction: cp.dir || 'outflow',
+                        counterparty: cp.name,
+                        description: `${cp.dir === 'inflow' ? 'Received from' : 'Payment to'} ${cp.name}`,
+                        reference: `REF${String(id).padStart(6, '0')}`,
+                        category2Id: cp.cat2,
+                        category3Id: cp.cat3,
+                        status: 'categorized',
+                        fundingType: cp.fundingType || (cp.cat2 === '9' ? 'loan' : null)
+                    });
+                });
+            });
+            
+            return transactions.sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+        }
+
+        // =====================================================
+        // INITIALIZATION
+        // =====================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            showLoading(true);
+            
+            // Check for cached data
+            loadFromCache();
+            
+            // Initialize Firebase if configured
+            if (!DEMO_MODE) {
+                try {
+                    firebase.initializeApp(FIREBASE_CONFIG);
+                    AppState.db = firebase.firestore();
+                    AppState.isConnected = true;
+                    await loadFromFirestore();
+                    setupRealtimeListeners();
+                    updateSyncStatus('connected');
+                } catch (error) {
+                    console.error('Firebase init error:', error);
+                    updateSyncStatus('offline');
+                    loadDemoData();
+                }
+            } else {
+                document.getElementById('connectionBanner').classList.add('offline');
+                loadDemoData();
+                updateSyncStatus('demo');
+            }
+            
+            // Setup UI
+            setupNavigation();
+            setupFilters();
+            populateFilterOptions();
+            
+            // Render initial view
+            renderKPIs();
+            renderAllCharts();
+            renderTransactionsTable();
+            
+            showLoading(false);
+        }
+
+        function loadDemoData() {
+            AppState.transactions = DEMO_DATA.transactions;
+            AppState.categories = DEMO_DATA.categories;
+            AppState.suppliers = DEMO_DATA.suppliers;
+            AppState.budgets = DEMO_DATA.budgets;
+            AppState.rules = DEMO_DATA.rules;
+            saveToCache();
+        }
+
+        // =====================================================
+        // FIREBASE OPERATIONS
+        // =====================================================
+        async function loadFromFirestore() {
+            try {
+                const db = AppState.db;
+                
+                // Load transactions
+                const txSnapshot = await db.collection('bank_transactions').orderBy('transactionDate', 'desc').limit(5000).get();
+                AppState.transactions = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Load categories
+                const catSnapshot = await db.collection('categories').get();
+                AppState.categories = catSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Load suppliers
+                const supSnapshot = await db.collection('suppliers').get();
+                AppState.suppliers = supSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Load budgets
+                const budSnapshot = await db.collection('budgets').get();
+                AppState.budgets = budSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Load rules
+                const ruleSnapshot = await db.collection('rules_and_overrides').orderBy('priority').get();
+                AppState.rules = ruleSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Load classifications
+                const classSnapshot = await db.collection('transaction_classification').get();
+                classSnapshot.docs.forEach(doc => {
+                    AppState.classifications[doc.data().transactionId] = { id: doc.id, ...doc.data() };
+                });
+                
+                // Apply classifications to transactions
+                applyClassifications();
+                
+                saveToCache();
+            } catch (error) {
+                console.error('Error loading from Firestore:', error);
+                showToast('Error loading data from Firebase', 'error');
+            }
+        }
+
+        function setupRealtimeListeners() {
+            const db = AppState.db;
+            
+            // Listen for transaction changes
+            db.collection('bank_transactions').onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const tx = { id: change.doc.id, ...change.doc.data() };
+                        const idx = AppState.transactions.findIndex(t => t.id === tx.id);
+                        if (idx >= 0) {
+                            AppState.transactions[idx] = tx;
+                        } else {
+                            AppState.transactions.unshift(tx);
+                        }
+                    } else if (change.type === 'removed') {
+                        AppState.transactions = AppState.transactions.filter(t => t.id !== change.doc.id);
+                    }
+                });
+                applyClassifications();
+                refreshUI();
+            });
+        }
+
+        async function saveClassification(transactionId, data) {
+            if (!AppState.isConnected) {
+                showToast('Running in demo mode - changes not saved', 'warning');
+                return;
+            }
+            
+            try {
+                const db = AppState.db;
+                const existing = AppState.classifications[transactionId];
+                
+                const classData = {
+                    transactionId,
+                    ...data,
+                    overriddenAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (existing) {
+                    await db.collection('transaction_classification').doc(existing.id).update(classData);
+                } else {
+                    const docRef = await db.collection('transaction_classification').add(classData);
+                    AppState.classifications[transactionId] = { id: docRef.id, ...classData };
+                }
+                
+                // Log to audit
+                await db.collection('audit_log').add({
+                    entityType: 'transaction',
+                    entityId: transactionId,
+                    action: existing ? 'update' : 'create',
+                    after: classData,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast('Classification saved');
+            } catch (error) {
+                console.error('Error saving classification:', error);
+                showToast('Error saving changes', 'error');
+            }
+        }
+
+        // =====================================================
+        // AUTO-CATEGORIZATION ENGINE
+        // =====================================================
+        function applyClassifications() {
+            AppState.transactions.forEach(tx => {
+                // Step 1: Check for manual override
+                const override = AppState.classifications[tx.id];
+                if (override) {
+                    Object.assign(tx, {
+                        supplierId: override.supplierId || tx.supplierId,
+                        category2Id: override.category2Id || tx.category2Id,
+                        category3Id: override.category3Id || tx.category3Id,
+                        fundingType: override.fundingType || tx.fundingType,
+                        status: override.status || 'categorized',
+                        notes: override.notes
+                    });
+                    return;
+                }
+                
+                // Step 2: Apply rules
+                const matchedRule = findMatchingRule(tx);
+                if (matchedRule) {
+                    if (matchedRule.supplierId) tx.supplierId = matchedRule.supplierId;
+                    if (matchedRule.category2Id) tx.category2Id = matchedRule.category2Id;
+                    if (matchedRule.category3Id) tx.category3Id = matchedRule.category3Id;
+                    if (matchedRule.fundingType) tx.fundingType = matchedRule.fundingType;
+                    tx.status = 'categorized';
+                    return;
+                }
+                
+                // Step 3: Apply supplier defaults
+                const supplier = AppState.suppliers.find(s => 
+                    s.supplierName && tx.counterparty && 
+                    tx.counterparty.toLowerCase().includes(s.supplierName.toLowerCase())
+                );
+                if (supplier) {
+                    tx.supplierId = supplier.id;
+                    if (!tx.category2Id && supplier.defaultCategory2Id) {
+                        tx.category2Id = supplier.defaultCategory2Id;
+                        tx.category3Id = supplier.defaultCategory3Id;
+                        tx.status = 'categorized';
+                    }
+                    return;
+                }
+                
+                // Step 4: Check for internal transfers
+                if (isInternalTransfer(tx)) {
+                    tx.status = 'internal_transfer';
+                    return;
+                }
+                
+                // Step 5: Mark as needs review
+                if (!tx.category2Id) {
+                    tx.status = 'needs_review';
+                }
+            });
+        }
+
+        function findMatchingRule(tx) {
+            const sortedRules = AppState.rules
+                .filter(r => r.isActive !== false)
+                .sort((a, b) => (a.priority || 100) - (b.priority || 100));
+            
+            for (const rule of sortedRules) {
+                const fieldValue = tx[rule.matchField] || '';
+                let matches = false;
+                
+                switch (rule.type) {
+                    case 'exact':
+                        matches = fieldValue.toLowerCase() === rule.pattern.toLowerCase();
+                        break;
+                    case 'contains':
+                        matches = fieldValue.toLowerCase().includes(rule.pattern.toLowerCase());
+                        break;
+                    case 'regex':
+                        try {
+                            matches = new RegExp(rule.pattern, 'i').test(fieldValue);
+                        } catch (e) {
+                            console.warn('Invalid regex:', rule.pattern);
+                        }
+                        break;
+                }
+                
+                if (matches) return rule;
+            }
+            return null;
+        }
+
+        function isInternalTransfer(tx) {
+            const keywords = ['virement', 'transfer', 'interne', 'internal'];
+            const desc = (tx.description || '').toLowerCase();
+            return keywords.some(kw => desc.includes(kw));
+        }
+
+        // =====================================================
+        // KPI CALCULATIONS
+        // =====================================================
+        function calculateKPIs() {
+            const filtered = getFilteredTransactions();
+            const outflows = filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer');
+            const inflows = filtered.filter(t => t.direction === 'inflow');
+            
+            // Total CAPEX (excluding bank fees)
+            const totalCapex = outflows
+                .filter(t => t.category2Id && t.category2Id !== '9')
+                .reduce((sum, t) => sum + (t.amount || 0), 0);
+            
+            // Total Budget
+            const totalBudget = AppState.budgets.reduce((sum, b) => sum + (b.budgetAmount || 0), 0);
+            
+            // Total Funding
+            const totalFunding = inflows.reduce((sum, t) => sum + (t.amount || 0), 0);
+            
+            // Calculate burn rate (last 90 days)
+            const now = new Date();
+            const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            const recentOutflows = outflows.filter(t => new Date(t.transactionDate) >= ninetyDaysAgo);
+            const burnRate = recentOutflows.reduce((sum, t) => sum + (t.amount || 0), 0) / 3;
+            
+            // Cash position
+            const cashPosition = totalFunding - totalCapex;
+            
+            // Runway
+            const runway = burnRate > 0 ? cashPosition / burnRate : Infinity;
+            
+            // Funding coverage
+            const fundingCoverage = totalCapex > 0 ? (totalFunding / totalCapex) * 100 : 100;
+            
+            // By category
+            const byCategory2 = {};
+            outflows.forEach(t => {
+                const cat = t.category2Id || 'uncategorized';
+                byCategory2[cat] = (byCategory2[cat] || 0) + (t.amount || 0);
+            });
+            
+            // Needs review count
+            const needsReview = filtered.filter(t => t.status === 'needs_review').length;
+            
+            return {
+                totalCapex,
+                totalBudget,
+                budgetRemaining: totalBudget - totalCapex,
+                totalFunding,
+                burnRate,
+                cashPosition,
+                runway,
+                fundingCoverage,
+                byCategory2,
+                needsReview,
+                transactionCount: filtered.length
+            };
+        }
+
+        // =====================================================
+        // UI RENDERING
+        // =====================================================
+        function renderKPIs() {
+            const kpis = calculateKPIs();
+            
+            const kpiGrid = document.getElementById('kpiGrid');
+            kpiGrid.innerHTML = `
+                <div class="kpi-card">
+                    <div class="kpi-label">Total CAPEX</div>
+                    <div class="kpi-value">${formatCurrency(kpis.totalCapex)}</div>
+                    <div class="kpi-trend neutral">${((kpis.totalCapex / kpis.totalBudget) * 100).toFixed(1)}% of budget</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Budget Remaining</div>
+                    <div class="kpi-value">${formatCurrency(kpis.budgetRemaining)}</div>
+                    <div class="kpi-trend ${kpis.budgetRemaining >= 0 ? 'positive' : 'negative'}">
+                        ${kpis.budgetRemaining >= 0 ? '✓ Under budget' : '⚠ Over budget'}
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Funding</div>
+                    <div class="kpi-value">${formatCurrency(kpis.totalFunding)}</div>
+                    <div class="kpi-trend ${kpis.fundingCoverage >= 100 ? 'positive' : 'negative'}">
+                        ${kpis.fundingCoverage.toFixed(1)}% coverage
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Monthly Burn Rate</div>
+                    <div class="kpi-value">${formatCurrency(kpis.burnRate)}</div>
+                    <div class="kpi-trend neutral">Last 90 days avg</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Cash Position</div>
+                    <div class="kpi-value">${formatCurrency(kpis.cashPosition)}</div>
+                    <div class="kpi-trend ${kpis.cashPosition >= 0 ? 'positive' : 'negative'}">
+                        ${kpis.runway.toFixed(1)} months runway
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Needs Review</div>
+                    <div class="kpi-value">${kpis.needsReview}</div>
+                    <div class="kpi-trend ${kpis.needsReview === 0 ? 'positive' : 'negative'}">
+                        transactions
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAllCharts() {
+            renderTreemap();
+            renderBulletChart();
+            renderTrendChart();
+            renderFundingStackChart();
+            renderStackedBarChart();
+            renderHeatmapChart();
+            renderSupplierCharts();
+            renderSankeyChart();
+            renderSunburstChart();
+        }
+
+        function renderTreemap() {
+            const kpis = calculateKPIs();
+            const chart = echarts.init(document.getElementById('chartTreemap'));
+            
+            const data = Object.entries(kpis.byCategory2)
+                .filter(([cat]) => cat !== 'uncategorized')
+                .map(([cat, value]) => {
+                    const catInfo = AppState.categories.find(c => c.category2Id === cat);
+                    return {
+                        name: catInfo ? catInfo.category2Name : cat,
+                        value: value,
+                        itemStyle: { borderColor: '#fff', borderWidth: 2 }
+                    };
+                });
+            
+            chart.setOption({
+                tooltip: {
+                    formatter: info => `${info.name}<br/>Amount: ${formatCurrency(info.value)}`
+                },
+                series: [{
+                    type: 'treemap',
+                    data: data,
+                    roam: false,
+                    nodeClick: 'zoomToNode',
+                    breadcrumb: { show: true },
+                    label: {
+                        show: true,
+                        formatter: '{b}',
+                        fontSize: 12
+                    },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        gapWidth: 2
+                    },
+                    levels: [{
+                        itemStyle: {
+                            borderColor: '#555',
+                            borderWidth: 3,
+                            gapWidth: 3
+                        }
+                    }]
+                }]
+            });
+            
+            AppState.charts.treemap = chart;
+        }
+
+        function renderBulletChart() {
+            const chart = echarts.init(document.getElementById('chartBullet'));
+            const filtered = getFilteredTransactions();
+            
+            // Calculate actuals by category
+            const actuals = {};
+            filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer')
+                .forEach(t => {
+                    const cat = t.category3Id || t.category2Id || 'other';
+                    actuals[cat] = (actuals[cat] || 0) + (t.amount || 0);
+                });
+            
+            // Prepare data
+            const categories = [];
+            const budgetData = [];
+            const actualData = [];
+            
+            AppState.budgets.forEach(b => {
+                const catInfo = AppState.categories.find(c => 
+                    c.category3Id === b.category3Id || c.category2Id === b.category2Id
+                );
+                const catName = catInfo ? (catInfo.category3Name || catInfo.category2Name) : b.category3Id;
+                categories.push(catName);
+                budgetData.push(b.budgetAmount);
+                actualData.push(actuals[b.category3Id] || actuals[b.category2Id] || 0);
+            });
+            
+            chart.setOption({
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: params => {
+                        const budget = params.find(p => p.seriesName === 'Budget');
+                        const actual = params.find(p => p.seriesName === 'Actual');
+                        const variance = actual.value - budget.value;
+                        return `${params[0].name}<br/>
+                            Budget: ${formatCurrency(budget.value)}<br/>
+                            Actual: ${formatCurrency(actual.value)}<br/>
+                            Variance: <span style="color:${variance > 0 ? '#c62828' : '#2e7d32'}">${formatCurrency(variance)}</span>`;
+                    }
+                },
+                legend: { data: ['Budget', 'Actual'], bottom: 0 },
+                grid: { left: 150, right: 30, top: 10, bottom: 40 },
+                xAxis: {
+                    type: 'value',
+                    axisLabel: { formatter: v => formatCompact(v) }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: categories,
+                    axisLabel: { fontSize: 11 }
+                },
+                series: [
+                    {
+                        name: 'Budget',
+                        type: 'bar',
+                        data: budgetData,
+                        barWidth: 20,
+                        itemStyle: { color: '#e0e0e0' },
+                        z: 1
+                    },
+                    {
+                        name: 'Actual',
+                        type: 'bar',
+                        data: actualData,
+                        barWidth: 12,
+                        itemStyle: { 
+                            color: params => actualData[params.dataIndex] > budgetData[params.dataIndex] ? '#c62828' : '#1e3a5f'
+                        },
+                        z: 2
+                    }
+                ]
+            });
+            
+            AppState.charts.bullet = chart;
+        }
+
+        function renderTrendChart() {
+            const chart = echarts.init(document.getElementById('chartTrend'));
+            const filtered = getFilteredTransactions();
+            
+            // Group by month
+            const monthly = {};
+            filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer')
+                .forEach(t => {
+                    const month = t.transactionDate.substring(0, 7);
+                    monthly[month] = (monthly[month] || 0) + (t.amount || 0);
+                });
+            
+            const months = Object.keys(monthly).sort();
+            const values = months.map(m => monthly[m]);
+            
+            // Calculate cumulative
+            let cumulative = 0;
+            const cumulativeValues = values.map(v => {
+                cumulative += v;
+                return cumulative;
+            });
+            
+            chart.setOption({
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: params => {
+                        const monthly = params.find(p => p.seriesName === 'Monthly');
+                        const cumul = params.find(p => p.seriesName === 'Cumulative');
+                        return `${params[0].axisValue}<br/>
+                            Monthly: ${formatCurrency(monthly.value)}<br/>
+                            Cumulative: ${formatCurrency(cumul.value)}`;
+                    }
+                },
+                legend: { data: ['Monthly', 'Cumulative'], bottom: 0 },
+                grid: { left: 60, right: 60, top: 20, bottom: 40 },
+                xAxis: {
+                    type: 'category',
+                    data: months,
+                    axisLabel: { rotate: 45, fontSize: 10 }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: 'Monthly',
+                        axisLabel: { formatter: v => formatCompact(v) }
+                    },
+                    {
+                        type: 'value',
+                        name: 'Cumulative',
+                        axisLabel: { formatter: v => formatCompact(v) }
+                    }
+                ],
+                series: [
+                    {
+                        name: 'Monthly',
+                        type: 'bar',
+                        data: values,
+                        itemStyle: { color: '#1e3a5f' }
+                    },
+                    {
+                        name: 'Cumulative',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: cumulativeValues,
+                        smooth: true,
+                        lineStyle: { color: '#f59e0b', width: 2 },
+                        itemStyle: { color: '#f59e0b' }
+                    }
+                ]
+            });
+            
+            AppState.charts.trend = chart;
+        }
+
+        function renderFundingStackChart() {
+            const chart = echarts.init(document.getElementById('chartFundingStack'));
+            const filtered = getFilteredTransactions();
+            
+            const inflows = filtered.filter(t => t.direction === 'inflow');
+            
+            // Group by funding type and month
+            const data = { cca: {}, loan: {}, equity: {}, other: {} };
+            inflows.forEach(t => {
+                const month = t.transactionDate.substring(0, 7);
+                const type = t.fundingType || 'other';
+                if (data[type]) {
+                    data[type][month] = (data[type][month] || 0) + (t.amount || 0);
+                }
+            });
+            
+            const months = [...new Set(inflows.map(t => t.transactionDate.substring(0, 7)))].sort();
+            
+            chart.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                legend: { data: ['CCA', 'Loans', 'Equity', 'Other'], bottom: 0 },
+                grid: { left: 60, right: 20, top: 20, bottom: 40 },
+                xAxis: {
+                    type: 'category',
+                    data: months,
+                    axisLabel: { rotate: 45, fontSize: 10 }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: { formatter: v => formatCompact(v) }
+                },
+                series: [
+                    { name: 'CCA', type: 'bar', stack: 'funding', data: months.map(m => data.cca[m] || 0), itemStyle: { color: '#1e3a5f' } },
+                    { name: 'Loans', type: 'bar', stack: 'funding', data: months.map(m => data.loan[m] || 0), itemStyle: { color: '#3d7ea6' } },
+                    { name: 'Equity', type: 'bar', stack: 'funding', data: months.map(m => data.equity[m] || 0), itemStyle: { color: '#2e7d32' } },
+                    { name: 'Other', type: 'bar', stack: 'funding', data: months.map(m => data.other[m] || 0), itemStyle: { color: '#9e9e9e' } }
+                ]
+            });
+            
+            AppState.charts.fundingStack = chart;
+        }
+
+        function renderStackedBarChart() {
+            const chart = echarts.init(document.getElementById('chartStackedBar'));
+            const filtered = getFilteredTransactions();
+            
+            const categories2 = [...new Set(AppState.categories.map(c => c.category2Name))].filter(Boolean);
+            const outflows = filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer');
+            
+            // Group by month and category
+            const data = {};
+            categories2.forEach(c => data[c] = {});
+            
+            outflows.forEach(t => {
+                const month = t.transactionDate.substring(0, 7);
+                const catInfo = AppState.categories.find(c => c.category2Id === t.category2Id);
+                const catName = catInfo ? catInfo.category2Name : 'Other';
+                if (data[catName]) {
+                    data[catName][month] = (data[catName][month] || 0) + (t.amount || 0);
+                }
+            });
+            
+            const months = [...new Set(outflows.map(t => t.transactionDate.substring(0, 7)))].sort();
+            const colors = ['#1e3a5f', '#3d7ea6', '#2e7d32', '#c77700', '#c62828', '#6b6b6b'];
+            
+            chart.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                legend: { data: categories2, bottom: 0, type: 'scroll' },
+                grid: { left: 60, right: 20, top: 20, bottom: 60 },
+                xAxis: {
+                    type: 'category',
+                    data: months,
+                    axisLabel: { rotate: 45, fontSize: 10 }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: { formatter: v => formatCompact(v) }
+                },
+                series: categories2.map((cat, i) => ({
+                    name: cat,
+                    type: 'bar',
+                    stack: 'total',
+                    data: months.map(m => data[cat][m] || 0),
+                    itemStyle: { color: colors[i % colors.length] }
+                }))
+            });
+            
+            AppState.charts.stackedBar = chart;
+        }
+
+        function renderHeatmapChart() {
+            const chart = echarts.init(document.getElementById('chartHeatmap'));
+            const filtered = getFilteredTransactions();
+            
+            const categories3 = [...new Set(AppState.categories.map(c => c.category3Name))].filter(Boolean);
+            const outflows = filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer');
+            
+            const months = [...new Set(outflows.map(t => t.transactionDate.substring(0, 7)))].sort();
+            
+            // Build data
+            const data = [];
+            let maxVal = 0;
+            
+            categories3.forEach((cat, catIdx) => {
+                months.forEach((month, monthIdx) => {
+                    const catInfo = AppState.categories.find(c => c.category3Name === cat);
+                    const value = outflows
+                        .filter(t => t.category3Id === catInfo?.category3Id && t.transactionDate.startsWith(month))
+                        .reduce((sum, t) => sum + (t.amount || 0), 0);
+                    if (value > 0) {
+                        data.push([monthIdx, catIdx, value]);
+                        if (value > maxVal) maxVal = value;
+                    }
+                });
+            });
+            
+            chart.setOption({
+                tooltip: {
+                    position: 'top',
+                    formatter: params => `${categories3[params.value[1]]}<br/>${months[params.value[0]]}<br/>${formatCurrency(params.value[2])}`
+                },
+                grid: { left: 150, right: 20, top: 20, bottom: 60 },
+                xAxis: {
+                    type: 'category',
+                    data: months,
+                    axisLabel: { rotate: 45, fontSize: 10 }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: categories3,
+                    axisLabel: { fontSize: 10 }
+                },
+                visualMap: {
+                    min: 0,
+                    max: maxVal,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: 0,
+                    inRange: { color: ['#fff', '#1e3a5f'] }
+                },
+                series: [{
+                    name: 'Spend',
+                    type: 'heatmap',
+                    data: data,
+                    label: { show: false }
+                }]
+            });
+            
+            AppState.charts.heatmap = chart;
+        }
+
+        function renderSupplierCharts() {
+            const filtered = getFilteredTransactions();
+            const outflows = filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer');
+            
+            // Group by supplier
+            const bySupplier = {};
+            outflows.forEach(t => {
+                const supplier = t.counterparty || 'Unknown';
+                if (!bySupplier[supplier]) bySupplier[supplier] = { total: 0, count: 0 };
+                bySupplier[supplier].total += t.amount || 0;
+                bySupplier[supplier].count += 1;
+            });
+            
+            const sorted = Object.entries(bySupplier)
+                .sort((a, b) => b[1].total - a[1].total)
+                .slice(0, 15);
+            
+            // Horizontal bar
+            const barChart = echarts.init(document.getElementById('chartSupplierBar'));
+            barChart.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: 180, right: 30, top: 10, bottom: 20 },
+                xAxis: {
+                    type: 'value',
+                    axisLabel: { formatter: v => formatCompact(v) }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: sorted.map(s => s[0]).reverse(),
+                    axisLabel: { fontSize: 10, width: 160, overflow: 'truncate' }
+                },
+                series: [{
+                    type: 'bar',
+                    data: sorted.map(s => s[1].total).reverse(),
+                    itemStyle: { color: '#1e3a5f' }
+                }]
+            });
+            AppState.charts.supplierBar = barChart;
+            
+            // Bubble chart
+            const bubbleChart = echarts.init(document.getElementById('chartSupplierBubble'));
+            const bubbleData = Object.entries(bySupplier).map(([name, data]) => ({
+                name,
+                value: [data.count, data.total, data.total / data.count]
+            }));
+            
+            bubbleChart.setOption({
+                tooltip: {
+                    formatter: params => `${params.data.name}<br/>
+                        Payments: ${params.data.value[0]}<br/>
+                        Total: ${formatCurrency(params.data.value[1])}<br/>
+                        Avg: ${formatCurrency(params.data.value[2])}`
+                },
+                grid: { left: 60, right: 30, top: 20, bottom: 40 },
+                xAxis: {
+                    name: 'Number of Payments',
+                    nameLocation: 'middle',
+                    nameGap: 25
+                },
+                yAxis: {
+                    name: 'Total Amount',
+                    nameLocation: 'middle',
+                    nameGap: 45,
+                    axisLabel: { formatter: v => formatCompact(v) }
+                },
+                series: [{
+                    type: 'scatter',
+                    symbolSize: data => Math.sqrt(data[2]) / 50,
+                    data: bubbleData,
+                    itemStyle: { color: '#3d7ea6', opacity: 0.6 }
+                }]
+            });
+            AppState.charts.supplierBubble = bubbleChart;
+            
+            // Histogram
+            const histChart = echarts.init(document.getElementById('chartHistogram'));
+            const amounts = outflows.map(t => t.amount || 0);
+            const bins = [0, 10000, 50000, 100000, 250000, 500000, 1000000, Infinity];
+            const binCounts = bins.slice(1).map((max, i) => {
+                const min = bins[i];
+                return amounts.filter(a => a >= min && a < max).length;
+            });
+            const binLabels = ['<10K', '10-50K', '50-100K', '100-250K', '250-500K', '500K-1M', '>1M'];
+            
+            histChart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 50, right: 20, top: 20, bottom: 40 },
+                xAxis: {
+                    type: 'category',
+                    data: binLabels
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Count'
+                },
+                series: [{
+                    type: 'bar',
+                    data: binCounts,
+                    itemStyle: { color: '#1e3a5f' }
+                }]
+            });
+            AppState.charts.histogram = histChart;
+            
+            // Concentration
+            const concChart = echarts.init(document.getElementById('chartConcentration'));
+            const totalSpend = outflows.reduce((sum, t) => sum + (t.amount || 0), 0);
+            let cumulative = 0;
+            const concentrationData = sorted.map((s, i) => {
+                cumulative += s[1].total;
+                return { name: s[0], value: (cumulative / totalSpend * 100).toFixed(1) };
+            });
+            
+            concChart.setOption({
+                tooltip: { formatter: params => `Top ${params.dataIndex + 1} suppliers: ${params.value}%` },
+                grid: { left: 50, right: 20, top: 20, bottom: 40 },
+                xAxis: {
+                    type: 'category',
+                    data: concentrationData.map((_, i) => `Top ${i + 1}`),
+                    axisLabel: { rotate: 45, fontSize: 10 }
+                },
+                yAxis: {
+                    type: 'value',
+                    max: 100,
+                    name: '% of Total'
+                },
+                series: [{
+                    type: 'line',
+                    data: concentrationData.map(d => d.value),
+                    smooth: true,
+                    areaStyle: { opacity: 0.3 },
+                    itemStyle: { color: '#1e3a5f' }
+                }]
+            });
+            AppState.charts.concentration = concChart;
+        }
+
+        function renderSankeyChart() {
+            const chart = echarts.init(document.getElementById('chartSankey'));
+            const filtered = getFilteredTransactions();
+            const outflows = filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer');
+            
+            // Build nodes and links
+            const nodes = [];
+            const links = [];
+            const nodeSet = new Set();
+            
+            // Funding sources
+            ['CCA', 'Loans', 'Equity', 'Other Funding'].forEach(n => {
+                nodeSet.add(n);
+                nodes.push({ name: n });
+            });
+            
+            // Categories
+            const cat2Set = new Set();
+            outflows.forEach(t => {
+                const catInfo = AppState.categories.find(c => c.category2Id === t.category2Id);
+                if (catInfo) cat2Set.add(catInfo.category2Name);
+            });
+            cat2Set.forEach(c => {
+                nodeSet.add(c);
+                nodes.push({ name: c });
+            });
+            
+            // Build links from funding to categories
+            const inflows = filtered.filter(t => t.direction === 'inflow');
+            const totalFunding = inflows.reduce((sum, t) => sum + (t.amount || 0), 0);
+            
+            cat2Set.forEach(cat => {
+                const catInfo = AppState.categories.find(c => c.category2Name === cat);
+                const catSpend = outflows
+                    .filter(t => t.category2Id === catInfo?.category2Id)
+                    .reduce((sum, t) => sum + (t.amount || 0), 0);
+                
+                if (catSpend > 0) {
+                    // Distribute funding proportionally
+                    links.push({ source: 'Loans', target: cat, value: catSpend * 0.6 });
+                    links.push({ source: 'CCA', target: cat, value: catSpend * 0.3 });
+                    links.push({ source: 'Other Funding', target: cat, value: catSpend * 0.1 });
+                }
+            });
+            
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    type: 'sankey',
+                    layout: 'none',
+                    emphasis: { focus: 'adjacency' },
+                    data: nodes,
+                    links: links.filter(l => l.value > 0),
+                    lineStyle: { color: 'gradient', curveness: 0.5 },
+                    itemStyle: { borderWidth: 1 }
+                }]
+            });
+            
+            AppState.charts.sankey = chart;
+        }
+
+        function renderSunburstChart() {
+            const chart = echarts.init(document.getElementById('chartSunburst'));
+            const filtered = getFilteredTransactions();
+            const outflows = filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer');
+            
+            // Build hierarchical data
+            const hierarchy = {};
+            
+            outflows.forEach(t => {
+                const cat2Info = AppState.categories.find(c => c.category2Id === t.category2Id);
+                const cat3Info = AppState.categories.find(c => c.category3Id === t.category3Id);
+                const cat2Name = cat2Info?.category2Name || 'Other';
+                const cat3Name = cat3Info?.category3Name || 'Uncategorized';
+                const supplier = t.counterparty || 'Unknown';
+                
+                if (!hierarchy[cat2Name]) hierarchy[cat2Name] = {};
+                if (!hierarchy[cat2Name][cat3Name]) hierarchy[cat2Name][cat3Name] = {};
+                hierarchy[cat2Name][cat3Name][supplier] = (hierarchy[cat2Name][cat3Name][supplier] || 0) + (t.amount || 0);
+            });
+            
+            const data = Object.entries(hierarchy).map(([cat2, cat3s]) => ({
+                name: cat2,
+                children: Object.entries(cat3s).map(([cat3, suppliers]) => ({
+                    name: cat3,
+                    children: Object.entries(suppliers).map(([supplier, value]) => ({
+                        name: supplier,
+                        value
+                    }))
+                }))
+            }));
+            
+            chart.setOption({
+                tooltip: {
+                    formatter: info => `${info.name}<br/>${formatCurrency(info.value || 0)}`
+                },
+                series: [{
+                    type: 'sunburst',
+                    data: data,
+                    radius: [0, '90%'],
+                    sort: 'desc',
+                    emphasis: { focus: 'ancestor' },
+                    levels: [
+                        {},
+                        { r0: '15%', r: '45%', label: { rotate: 'tangential', fontSize: 11 } },
+                        { r0: '45%', r: '70%', label: { align: 'right', fontSize: 10 } },
+                        { r0: '70%', r: '73%', label: { show: false } }
+                    ]
+                }]
+            });
+            
+            chart.on('click', params => {
+                drilldownToTransactions(params.data.name);
+            });
+            
+            AppState.charts.sunburst = chart;
+        }
+
+        function drilldownToTransactions(filterValue) {
+            document.getElementById('drilldownTitle').textContent = `Transactions: ${filterValue}`;
+            
+            const filtered = getFilteredTransactions().filter(t => {
+                const cat2Info = AppState.categories.find(c => c.category2Id === t.category2Id);
+                const cat3Info = AppState.categories.find(c => c.category3Id === t.category3Id);
+                return t.counterparty === filterValue || 
+                       cat2Info?.category2Name === filterValue || 
+                       cat3Info?.category3Name === filterValue;
+            });
+            
+            const tbody = document.getElementById('drilldownTableBody');
+            tbody.innerHTML = filtered.map(t => {
+                const cat2Info = AppState.categories.find(c => c.category2Id === t.category2Id);
+                return `<tr>
+                    <td>${formatDate(t.transactionDate)}</td>
+                    <td>${t.counterparty || '-'}</td>
+                    <td>${t.description || '-'}</td>
+                    <td class="numeric">${formatCurrency(t.amount)}</td>
+                    <td>${cat2Info?.category2Name || '-'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderTransactionsTable() {
+            const filtered = getFilteredTransactions();
+            const start = AppState.pagination.page * AppState.pagination.pageSize;
+            const pageData = filtered.slice(start, start + AppState.pagination.pageSize);
+            
+            const tbody = document.getElementById('transactionsTableBody');
+            tbody.innerHTML = pageData.map(t => {
+                const cat2Info = AppState.categories.find(c => c.category2Id === t.category2Id);
+                const cat3Info = AppState.categories.find(c => c.category3Id === t.category3Id);
+                
+                return `<tr data-id="${t.id}">
+                    <td><input type="checkbox" class="tx-checkbox" ${AppState.selectedTransactions.has(t.id) ? 'checked' : ''}></td>
+                    <td>${formatDate(t.transactionDate)}</td>
+                    <td class="numeric">${formatCurrency(t.amount)}</td>
+                    <td><span class="status-pill ${t.direction === 'inflow' ? 'status-internal' : ''}">${t.direction}</span></td>
+                    <td>${t.counterparty || '-'}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${t.description || '-'}</td>
+                    <td class="editable" onclick="editTransaction('${t.id}')">${getSupplierName(t.supplierId) || '-'}</td>
+                    <td class="editable" onclick="editTransaction('${t.id}')">${cat2Info?.category2Name || '-'}</td>
+                    <td class="editable" onclick="editTransaction('${t.id}')">${cat3Info?.category3Name || '-'}</td>
+                    <td class="editable" onclick="editTransaction('${t.id}')">${t.fundingType || '-'}</td>
+                    <td><span class="status-pill status-${t.status || 'categorized'}">${t.status || 'categorized'}</span></td>
+                </tr>`;
+            }).join('');
+            
+            document.getElementById('transactionCount').textContent = `${filtered.length} transactions`;
+            document.getElementById('prevPage').disabled = AppState.pagination.page === 0;
+            document.getElementById('nextPage').disabled = start + AppState.pagination.pageSize >= filtered.length;
+            
+            // Setup checkbox handlers
+            tbody.querySelectorAll('.tx-checkbox').forEach(cb => {
+                cb.addEventListener('change', e => {
+                    const id = e.target.closest('tr').dataset.id;
+                    if (e.target.checked) {
+                        AppState.selectedTransactions.add(id);
+                    } else {
+                        AppState.selectedTransactions.delete(id);
+                    }
+                });
+            });
+        }
+
+        function renderBudgetTable() {
+            const filtered = getFilteredTransactions();
+            const actuals = {};
+            
+            filtered.filter(t => t.direction === 'outflow' && t.status !== 'internal_transfer')
+                .forEach(t => {
+                    const key = `${t.category2Id}-${t.category3Id}`;
+                    actuals[key] = (actuals[key] || 0) + (t.amount || 0);
+                });
+            
+            const tbody = document.getElementById('budgetTableBody');
+            tbody.innerHTML = AppState.budgets.map(b => {
+                const cat2Info = AppState.categories.find(c => c.category2Id === b.category2Id);
+                const cat3Info = AppState.categories.find(c => c.category3Id === b.category3Id);
+                const actual = actuals[`${b.category2Id}-${b.category3Id}`] || 0;
+                const variance = actual - b.budgetAmount;
+                const pctUsed = (actual / b.budgetAmount * 100);
+                
+                return `<tr>
+                    <td>${cat2Info?.category2Name || '-'}</td>
+                    <td>${cat3Info?.category3Name || '-'}</td>
+                    <td class="numeric">${formatCurrency(b.budgetAmount)}</td>
+                    <td class="numeric">${formatCurrency(actual)}</td>
+                    <td class="numeric ${variance > 0 ? 'text-danger' : 'text-success'}">${formatCurrency(variance)}</td>
+                    <td class="numeric">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="flex: 1; height: 6px; background: #e0e0e0; border-radius: 3px;">
+                                <div style="width: ${Math.min(pctUsed, 100)}%; height: 100%; background: ${pctUsed > 100 ? '#c62828' : '#1e3a5f'}; border-radius: 3px;"></div>
+                            </div>
+                            <span style="font-size: 11px;">${pctUsed.toFixed(0)}%</span>
+                        </div>
+                    </td>
+                    <td><span class="status-pill ${pctUsed > 100 ? 'status-needs-review' : 'status-categorized'}">${pctUsed > 100 ? 'Over' : 'On Track'}</span></td>
+                    <td class="editable" onclick="editBudgetNote('${b.id}')">${b.notes || 'Add note...'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // =====================================================
+        // NAVIGATION & FILTERS
+        // =====================================================
+        function setupNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const page = item.dataset.page;
+                    navigateToPage(page);
+                });
+            });
+            
+            document.getElementById('prevPage').addEventListener('click', () => {
+                AppState.pagination.page--;
+                renderTransactionsTable();
+            });
+            
+            document.getElementById('nextPage').addEventListener('click', () => {
+                AppState.pagination.page++;
+                renderTransactionsTable();
+            });
+            
+            document.getElementById('selectAll').addEventListener('change', e => {
+                const checkboxes = document.querySelectorAll('.tx-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = e.target.checked;
+                    const id = cb.closest('tr').dataset.id;
+                    if (e.target.checked) {
+                        AppState.selectedTransactions.add(id);
+                    } else {
+                        AppState.selectedTransactions.delete(id);
+                    }
+                });
+            });
+            
+            document.getElementById('transactionSearch').addEventListener('input', e => {
+                AppState.searchTerm = e.target.value.toLowerCase();
+                AppState.pagination.page = 0;
+                renderTransactionsTable();
+            });
+        }
+
+        function navigateToPage(page) {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+            
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${page}`).classList.add('active');
+            
+            const titles = {
+                overview: 'Executive Overview',
+                budget: 'Budget & Cost Control',
+                suppliers: 'Supplier Analytics',
+                funding: 'Funding & Flows',
+                hierarchy: 'Hierarchy Explorer',
+                transactions: 'Transactions Ledger',
+                rules: 'Rules Manager',
+                settings: 'Settings'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || page;
+            
+            // Render page-specific content
+            if (page === 'budget') renderBudgetTable();
+            
+            // Resize charts
+            setTimeout(() => {
+                Object.values(AppState.charts).forEach(chart => {
+                    if (chart && chart.resize) chart.resize();
+                });
+            }, 100);
+        }
+
+        function setupFilters() {
+            ['filterDateRange', 'filterCategory2', 'filterCategory3', 'filterSupplier', 'filterFunding', 'filterStatus'].forEach(id => {
+                document.getElementById(id).addEventListener('change', e => {
+                    const filterName = id.replace('filter', '').toLowerCase();
+                    if (filterName === 'daterange') {
+                        AppState.filters.dateRange = e.target.value;
+                    } else {
+                        AppState.filters[filterName] = e.target.value;
+                    }
+                    refreshUI();
+                });
+            });
+        }
+
+        function populateFilterOptions() {
+            // Category 2
+            const cat2Select = document.getElementById('filterCategory2');
+            const cat2s = [...new Set(AppState.categories.map(c => c.category2Name))].filter(Boolean);
+            cat2s.forEach(cat => {
+                cat2Select.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+            
+            // Category 3
+            const cat3Select = document.getElementById('filterCategory3');
+            const cat3s = [...new Set(AppState.categories.map(c => c.category3Name))].filter(Boolean);
+            cat3s.forEach(cat => {
+                cat3Select.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+            
+            // Suppliers
+            const supSelect = document.getElementById('filterSupplier');
+            AppState.suppliers.forEach(s => {
+                supSelect.innerHTML += `<option value="${s.id}">${s.supplierName}</option>`;
+            });
+            
+            // Also populate modal dropdowns
+            document.getElementById('ruleCategory2').innerHTML = '<option value="">Select...</option>' + 
+                cat2s.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('ruleCategory3').innerHTML = '<option value="">Select...</option>' + 
+                cat3s.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function getFilteredTransactions() {
+            let filtered = [...AppState.transactions];
+            
+            // Date range filter
+            if (AppState.filters.dateRange !== 'all') {
+                const now = new Date();
+                let startDate;
+                switch (AppState.filters.dateRange) {
+                    case 'ytd': startDate = new Date(now.getFullYear(), 0, 1); break;
+                    case 'last12m': startDate = new Date(now.setMonth(now.getMonth() - 12)); break;
+                    case 'last6m': startDate = new Date(now.setMonth(now.getMonth() - 6)); break;
+                    case 'last3m': startDate = new Date(now.setMonth(now.getMonth() - 3)); break;
+                }
+                if (startDate) {
+                    filtered = filtered.filter(t => new Date(t.transactionDate) >= startDate);
+                }
+            }
+            
+            // Category filters
+            if (AppState.filters.category2 !== 'all') {
+                const catInfo = AppState.categories.find(c => c.category2Name === AppState.filters.category2);
+                if (catInfo) {
+                    filtered = filtered.filter(t => t.category2Id === catInfo.category2Id);
+                }
+            }
+            
+            if (AppState.filters.category3 !== 'all') {
+                const catInfo = AppState.categories.find(c => c.category3Name === AppState.filters.category3);
+                if (catInfo) {
+                    filtered = filtered.filter(t => t.category3Id === catInfo.category3Id);
+                }
+            }
+            
+            // Supplier filter
+            if (AppState.filters.supplier !== 'all') {
+                filtered = filtered.filter(t => t.supplierId === AppState.filters.supplier);
+            }
+            
+            // Funding filter
+            if (AppState.filters.funding !== 'all') {
+                filtered = filtered.filter(t => t.fundingType === AppState.filters.funding);
+            }
+            
+            // Status filter
+            if (AppState.filters.status !== 'all') {
+                filtered = filtered.filter(t => t.status === AppState.filters.status);
+            }
+            
+            // Search filter
+            if (AppState.searchTerm) {
+                filtered = filtered.filter(t => 
+                    (t.counterparty || '').toLowerCase().includes(AppState.searchTerm) ||
+                    (t.description || '').toLowerCase().includes(AppState.searchTerm) ||
+                    (t.reference || '').toLowerCase().includes(AppState.searchTerm)
+                );
+            }
+            
+            return filtered;
+        }
+
+        // =====================================================
+        // MODAL & EDITING
+        // =====================================================
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function openHelpModal() {
+            openModal('helpModal');
+        }
+
+        function openRuleModal() {
+            openModal('ruleModal');
+        }
+
+        function editTransaction(id) {
+            const tx = AppState.transactions.find(t => t.id === id);
+            if (!tx) return;
+            
+            AppState.editingTransaction = tx;
+            
+            // Populate modal
+            document.getElementById('txSupplier').value = tx.supplierId || '';
+            document.getElementById('txCategory2').value = tx.category2Id || '';
+            document.getElementById('txCategory3').value = tx.category3Id || '';
+            document.getElementById('txFunding').value = tx.fundingType || '';
+            document.getElementById('txStatus').value = tx.status || 'categorized';
+            document.getElementById('txNotes').value = tx.notes || '';
+            
+            openModal('transactionModal');
+        }
+
+        async function saveTransaction() {
+            const tx = AppState.editingTransaction;
+            if (!tx) return;
+            
+            const data = {
+                supplierId: document.getElementById('txSupplier').value || null,
+                category2Id: document.getElementById('txCategory2').value || null,
+                category3Id: document.getElementById('txCategory3').value || null,
+                fundingType: document.getElementById('txFunding').value || null,
+                status: document.getElementById('txStatus').value,
+                notes: document.getElementById('txNotes').value || null
+            };
+            
+            // Update local state
+            Object.assign(tx, data);
+            
+            // Save to Firebase
+            await saveClassification(tx.id, data);
+            
+            closeModal('transactionModal');
+            refreshUI();
+        }
+
+        async function saveRule() {
+            const rule = {
+                type: document.getElementById('ruleType').value,
+                matchField: document.getElementById('ruleField').value,
+                pattern: document.getElementById('rulePattern').value,
+                category2Id: document.getElementById('ruleCategory2').value || null,
+                category3Id: document.getElementById('ruleCategory3').value || null,
+                priority: parseInt(document.getElementById('rulePriority').value) || 100,
+                isActive: true
+            };
+            
+            if (!rule.pattern) {
+                showToast('Please enter a pattern', 'error');
+                return;
+            }
+            
+            AppState.rules.push(rule);
+            
+            if (AppState.isConnected) {
+                await AppState.db.collection('rules_and_overrides').add(rule);
+            }
+            
+            applyClassifications();
+            closeModal('ruleModal');
+            showToast('Rule saved');
+            refreshUI();
+        }
+
+        function bulkAction(action) {
+            if (AppState.selectedTransactions.size === 0) {
+                showToast('Please select transactions first', 'warning');
+                return;
+            }
+            
+            AppState.selectedTransactions.forEach(id => {
+                const tx = AppState.transactions.find(t => t.id === id);
+                if (tx) {
+                    if (action === 'review') tx.status = 'needs_review';
+                    if (action === 'transfer') tx.status = 'internal_transfer';
+                    saveClassification(id, { status: tx.status });
+                }
+            });
+            
+            AppState.selectedTransactions.clear();
+            showToast(`${action === 'review' ? 'Marked for review' : 'Marked as transfer'}`);
+            renderTransactionsTable();
+        }
+
+        // =====================================================
+        // UTILITIES
+        // =====================================================
+        function formatCurrency(value) {
+            if (value === null || value === undefined) return '-';
+            return new Intl.NumberFormat('fr-MA', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value) + ' Dhs';
+        }
+
+        function formatCompact(value) {
+            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+            if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
+            return value.toString();
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function getSupplierName(id) {
+            const supplier = AppState.suppliers.find(s => s.id === id);
+            return supplier?.supplierName;
+        }
+
+        function showLoading(show) {
+            // Could add a loading overlay
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toast.style.background = type === 'error' ? '#c62828' : type === 'warning' ? '#c77700' : '#1e3a5f';
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function updateSyncStatus(status) {
+            const dot = document.getElementById('syncDot');
+            const text = document.getElementById('syncText');
+            
+            if (status === 'connected') {
+                dot.className = 'sync-dot';
+                text.textContent = 'Connected';
+            } else if (status === 'offline') {
+                dot.className = 'sync-dot offline';
+                text.textContent = 'Offline';
+            } else if (status === 'demo') {
+                dot.className = 'sync-dot syncing';
+                text.textContent = 'Demo Mode';
+            }
+        }
+
+        function refreshUI() {
+            renderKPIs();
+            renderTransactionsTable();
+            renderAllCharts();
+        }
+
+        async function refreshData() {
+            showLoading(true);
+            if (AppState.isConnected) {
+                await loadFromFirestore();
+            }
+            refreshUI();
+            showLoading(false);
+            showToast('Data refreshed');
+        }
+
+        function saveToCache() {
+            try {
+                localStorage.setItem('villaBahia_transactions', JSON.stringify(AppState.transactions));
+                localStorage.setItem('villaBahia_categories', JSON.stringify(AppState.categories));
+                localStorage.setItem('villaBahia_suppliers', JSON.stringify(AppState.suppliers));
+                localStorage.setItem('villaBahia_budgets', JSON.stringify(AppState.budgets));
+            } catch (e) {
+                console.warn('Error saving to cache:', e);
+            }
+        }
+
+        function loadFromCache() {
+            try {
+                const transactions = localStorage.getItem('villaBahia_transactions');
+                const categories = localStorage.getItem('villaBahia_categories');
+                const suppliers = localStorage.getItem('villaBahia_suppliers');
+                const budgets = localStorage.getItem('villaBahia_budgets');
+                
+                if (transactions) AppState.transactions = JSON.parse(transactions);
+                if (categories) AppState.categories = JSON.parse(categories);
+                if (suppliers) AppState.suppliers = JSON.parse(suppliers);
+                if (budgets) AppState.budgets = JSON.parse(budgets);
+            } catch (e) {
+                console.warn('Error loading from cache:', e);
+            }
+        }
+
+        function clearLocalCache() {
+            localStorage.removeItem('villaBahia_transactions');
+            localStorage.removeItem('villaBahia_categories');
+            localStorage.removeItem('villaBahia_suppliers');
+            localStorage.removeItem('villaBahia_budgets');
+            showToast('Cache cleared');
+        }
+
+        function exportTransactions() {
+            const filtered = getFilteredTransactions();
+            const csv = [
+                ['Date', 'Amount', 'Direction', 'Counterparty', 'Description', 'Category 2', 'Category 3', 'Status'].join(','),
+                ...filtered.map(t => {
+                    const cat2Info = AppState.categories.find(c => c.category2Id === t.category2Id);
+                    const cat3Info = AppState.categories.find(c => c.category3Id === t.category3Id);
+                    return [
+                        t.transactionDate,
+                        t.amount,
+                        t.direction,
+                        `"${(t.counterparty || '').replace(/"/g, '""')}"`,
+                        `"${(t.description || '').replace(/"/g, '""')}"`,
+                        cat2Info?.category2Name || '',
+                        cat3Info?.category3Name || '',
+                        t.status || ''
+                    ].join(',');
+                })
+            ].join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `villa-bahia-transactions-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Window resize handler for charts
+        window.addEventListener('resize', () => {
+            Object.values(AppState.charts).forEach(chart => {
+                if (chart && chart.resize) chart.resize();
+            });
+        });
+    </script>
+</body>
+</html>
