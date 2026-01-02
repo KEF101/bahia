@@ -1780,40 +1780,119 @@
         // =====================================================
         // FIREBASE OPERATIONS
         // =====================================================
+        // Transform Firebase transaction data to dashboard format
+        function transformTransaction(doc) {
+            const data = doc.data();
+            const inflow = parseFloat(data.inflow) || 0;
+            const outflow = parseFloat(data.outflow) || 0;
+            
+            return {
+                id: doc.id,
+                // Date field mapping
+                transactionDate: data.operationDate || data.transactionDate || data.date || '',
+                // Amount and direction from inflow/outflow
+                amount: inflow > 0 ? inflow : outflow,
+                direction: inflow > 0 ? 'inflow' : 'outflow',
+                // Counterparty mapping
+                counterparty: data.counterpartyId || data.counterparty || data.supplier || '',
+                // Description mapping
+                description: data.designation || data.description || data.otherInfo || '',
+                // Category mappings
+                category1: data.category1 || '',
+                category2Id: data.category2 || data.category2Id || '',
+                category3Id: data.category3 || data.category3Id || '',
+                // Additional fields
+                reference: data.reference || data.id || '',
+                netAmount: data.netAmount || (inflow - outflow),
+                otherInfo: data.otherInfo || '',
+                // Status
+                status: data.status || 'needs_review',
+                fundingType: data.fundingType || '',
+                supplierId: data.supplierId || ''
+            };
+        }
+
         async function loadFromFirestore() {
             try {
                 const db = AppState.db;
                 
-                // Load transactions
-                const txSnapshot = await db.collection('bank_transactions').orderBy('transactionDate', 'desc').limit(5000).get();
-                AppState.transactions = txSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Load transactions - try both field names for ordering
+                let txSnapshot;
+                try {
+                    txSnapshot = await db.collection('bank_transactions').orderBy('operationDate', 'desc').limit(5000).get();
+                } catch (e) {
+                    // Fallback to transactionDate if operationDate index doesn't exist
+                    txSnapshot = await db.collection('bank_transactions').limit(5000).get();
+                }
+                AppState.transactions = txSnapshot.docs.map(doc => transformTransaction(doc));
+                
+                // Sort by date descending
+                AppState.transactions.sort((a, b) => (b.transactionDate || '').localeCompare(a.transactionDate || ''));
+                
+                console.log(`Loaded ${AppState.transactions.length} transactions from Firebase`);
                 
                 // Load categories
                 const catSnapshot = await db.collection('categories').get();
                 AppState.categories = catSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // Load suppliers
+                // Load suppliers - transform to expected format
                 const supSnapshot = await db.collection('suppliers').get();
-                AppState.suppliers = supSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Load budgets
-                const budSnapshot = await db.collection('budgets').get();
-                AppState.budgets = budSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Load rules
-                const ruleSnapshot = await db.collection('rules_and_overrides').orderBy('priority').get();
-                AppState.rules = ruleSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Load classifications
-                const classSnapshot = await db.collection('transaction_classification').get();
-                classSnapshot.docs.forEach(doc => {
-                    AppState.classifications[doc.data().transactionId] = { id: doc.id, ...doc.data() };
+                AppState.suppliers = supSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        supplierName: data.name || data.supplierName || doc.id,
+                        totalPaid: data.totalPaid || data.total || 0,
+                        transactionCount: data.transactionCount || data.count || 0,
+                        defaultCategory2Id: data.category2 || data.defaultCategory2Id || '',
+                        defaultCategory3Id: data.category3 || data.defaultCategory3Id || '',
+                        ...data
+                    };
                 });
+                
+                // Load budgets - transform to expected format
+                const budSnapshot = await db.collection('budgets').get();
+                AppState.budgets = budSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        category2Id: data.category2 || data.category2Id || doc.id,
+                        categoryName: data.name || data.categoryName || '',
+                        budgetAmount: data.budget || data.budgetAmount || data.amount || 0,
+                        ...data
+                    };
+                });
+                
+                // Load rules (may not exist yet)
+                try {
+                    const ruleSnapshot = await db.collection('rules_and_overrides').orderBy('priority').get();
+                    AppState.rules = ruleSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (e) {
+                    AppState.rules = [];
+                }
+                
+                // Load classifications (may not exist yet)
+                try {
+                    const classSnapshot = await db.collection('transaction_classification').get();
+                    classSnapshot.docs.forEach(doc => {
+                        AppState.classifications[doc.data().transactionId] = { id: doc.id, ...doc.data() };
+                    });
+                } catch (e) {
+                    // Classifications collection may not exist yet
+                }
                 
                 // Apply classifications to transactions
                 applyClassifications();
                 
                 saveToCache();
+                
+                console.log('Firebase data loaded successfully:', {
+                    transactions: AppState.transactions.length,
+                    categories: AppState.categories.length,
+                    suppliers: AppState.suppliers.length,
+                    budgets: AppState.budgets.length
+                });
+                
             } catch (error) {
                 console.error('Error loading from Firestore:', error);
                 showToast('Error loading data from Firebase', 'error');
@@ -1827,7 +1906,7 @@
             db.collection('bank_transactions').onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'added' || change.type === 'modified') {
-                        const tx = { id: change.doc.id, ...change.doc.data() };
+                        const tx = transformTransaction(change.doc);
                         const idx = AppState.transactions.findIndex(t => t.id === tx.id);
                         if (idx >= 0) {
                             AppState.transactions[idx] = tx;
